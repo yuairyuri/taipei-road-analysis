@@ -30,6 +30,46 @@
 | ------- | -------- | ---- |
 | Points of Interest | OSM  | [here](https://download.geofabrik.de/asia/taiwan.html#)
 
+## 分析方法
+
+軟體工具：
+
+* Excel
+
+* QGIS
+
+* Python
+
+### GIS 空間分析
+
+各路段人行道寬度的計算：
+
+1. 新增`寬度超過8公尺以上道路`、`臺北市人行道`圖層
+
+2. 新增`道路`的 Buffer (distance = 12 meters)
+
+3. 取道路的`Buffer`和`人行道`的交集
+
+4. 計算同一側人行道的平均寬度
+
+5. 將東西側、南北側的人行道寬度分別加總
+
+6. 依道路方向（南北向、東西向）指派該路段的人行道寬度
+
+各路段行道樹密度的計算：
+
+使用 **Count Points in Polygon** 演算法，計算`道路`的每個路段上`行道樹`的數量，再除以路段面積。
+
+人流量的估計：
+
+取用 POI 資料中的電影院、餐廳、商場等商業活動場所，作為可能的人群聚集地，以此推估人流量。
+
+1. 新增`POI`的 Heatmap (Kernel Density Estimation)
+
+2. **Zonal Statistics**
+
+3. 取路段內像素值的平均作為人流量大小的估計值
+
 ## About Us
 
 National Taipei University of Technology
