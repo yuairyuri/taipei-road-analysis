@@ -1,0 +1,28 @@
+body {
+    font-family: Verdana, Geneva, Tahoma, sans-serif;
+}
+
+.container {
+    display: flex;
+    flex-direction: row;
+}
+
+.left {
+    flex-basis: 30%;
+}
+
+.right {
+    flex-basis: 70%;
+}
+
+.controller {
+    margin: 16px 8px;
+    border: 1px solid lightgray;
+    border-radius: 8px;
+    padding: 16px 16px 24px;
+}
+
+.chart {
+    margin: 32px 8px 16px;
+    padding: 8px 16px;
+}
