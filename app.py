@@ -1,4 +1,4 @@
-from dash import Dash, dcc, html, Input, Output, callback
+from dash import Dash, dcc, html, Input, Output, callback, ctx
 from io import StringIO
 import time
 import json
@@ -13,6 +13,10 @@ app = Dash(__name__)
 
 app.layout = html.Div([
     html.H1("Visualizing Clustering Results"),
+    html.Div(className='top', children=[
+        html.Div(id='message-box'),
+        html.Button('Export', id='btn-export')
+    ]),
     html.Div(className='container', children=[
         html.Div(className='left', children=[
             html.Div(className='controller', children=[
@@ -50,6 +54,21 @@ def clustering(k_value):
     kmeans = KMeans(n_clusters=k_value, random_state=31).fit(X)
     df['cluster_id'] = kmeans.labels_
     return df.reset_index().to_json(orient='index')
+
+@app.callback(
+    Output('message-box', 'children'),
+    Input('k-range', 'value'),
+    Input('label', 'data'),
+    Input('btn-export', 'n_clicks')
+)
+def export_data(k_value, data, btn):
+    export_path = './output/{}_clusters.csv'.format(k_value)
+    if ctx.triggered_id == 'btn-export':
+        pd.read_json(StringIO(data), orient='index').set_index('OBJECTID').to_csv(export_path)
+        return html.Div(
+            html.P('Export clustering results to ' + export_path)
+        )
+    return 
 
 @app.callback(
     Output('radar-chart', 'figure'),
