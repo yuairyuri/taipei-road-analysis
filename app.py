@@ -5,6 +5,7 @@ import json
 import pandas as pd
 import geopandas as gpd
 import plotly.graph_objects as go
+import plotly.express as px
 
 from sklearn.cluster import KMeans
 
@@ -85,15 +86,15 @@ def draw_road(data, selected_cluster):
     labeled_df = pd.read_json(StringIO(data), orient='index')
     road_gdf = gpd.read_file("./data/roads.geojson").to_crs(4326)
     road_gdf = road_gdf.merge(labeled_df, on='OBJECTID').set_index('OBJECTID')
-    fig = go.Figure(go.Choroplethmapbox(
-        geojson=json.loads(road_gdf.geometry.to_json()),
+    road_gdf = road_gdf.astype({'cluster_id': 'category'})
+    fig = px.choropleth_mapbox(
+        road_gdf,
+        geojson=road_gdf.geometry,
+        color='cluster_id',
         locations=road_gdf.index,
-        z=road_gdf['cluster_id']
-    ))
-    fig.update_layout(
+        center={"lat": 25.0375, "lon": 121.5625},
         mapbox_style="carto-positron",
-        mapbox_zoom=12,
-        mapbox_center={"lat": 25.0375, "lon": 121.5625}
+        zoom=12
     )
     fig.update_layout(
         height=750,
