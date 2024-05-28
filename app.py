@@ -9,6 +9,8 @@ import plotly.express as px
 
 from sklearn.cluster import KMeans
 
+DEFAULT_PATH = "./data/major_road_data.csv"
+
 app = Dash(__name__)
 
 app.layout = html.Div([
@@ -20,10 +22,12 @@ app.layout = html.Div([
     html.Div(className='container', children=[
         html.Div(className='left', children=[
             html.Div(className='controller', children=[
+                html.P("Data Reading Path"),
+                dcc.Input(type='text', id='input-path', value=DEFAULT_PATH, size='50', readOnly=True),
+                html.P("Select Features"),
+                dcc.Dropdown(id='features', multi=True),
                 html.P("Select the Number of Clusters"),
-                dcc.Slider(2, 8, 1, value=3, id='k-range'),
-                html.P("Select Cluster"),
-                dcc.Dropdown(id='cluster', multi=True)
+                dcc.Slider(2, 8, 1, value=3, id='k-range')
             ]),
             html.Div(className='chart', children=[
                 dcc.Graph(figure={}, id='radar-chart')
@@ -33,24 +37,36 @@ app.layout = html.Div([
             dcc.Graph(figure={}, id='road')
         ])
     ]),
+    dcc.Store(id='table'),
     dcc.Store(id='label')
 ])
 
 @app.callback(
-    Output('cluster', 'options'),
-    Input('k-range', 'value')
+    Output('table', 'data'),
+    Input('input-path', 'value')
 )
-def select_cluster(k_value):
-    options = [i for i in range(k_value)]
-    return options
+def read_road_data(path):
+    return pd.read_csv(path).to_json(orient='index')
+
+@app.callback(
+    Output('features', 'options'),
+    Output('features', 'value'),
+    Input('table', 'data')
+)
+def select_features(data):
+    df = pd.read_json(StringIO(data), orient='index').set_index('OBJECTID')
+    default = df.columns[1:]
+    return df.columns.tolist(), default
 
 @app.callback(
     Output('label', 'data'),
-    Input('k-range', 'value')
+    Input('table', 'data'),
+    Input('features', 'value'),
+    Input('k-range', 'value'),
 )
-def clustering(k_value):
-    df = pd.read_csv("./data/major_road_data.csv").set_index('OBJECTID')
-    X = df.iloc[:, 1:]
+def clustering(data, features, k_value):
+    df = pd.read_json(StringIO(data), orient='index').set_index('OBJECTID')
+    X = df[features]
     kmeans = KMeans(n_clusters=k_value, random_state=31).fit(X)
     df['cluster_id'] = kmeans.labels_
     return df.reset_index().to_json(orient='index')
@@ -98,10 +114,9 @@ def show_features(data):
 
 @app.callback(
     Output('road', 'figure'),
-    Input('label', 'data'),
-    Input('cluster', 'value')
+    Input('label', 'data')
 )
-def draw_road(data, selected_cluster):
+def draw_road(data):
     labeled_df = pd.read_json(StringIO(data), orient='index')
     road_gdf = gpd.read_file("./data/roads.geojson").to_crs(4326)
     road_gdf = road_gdf.merge(labeled_df, on='OBJECTID').set_index('OBJECTID')

@@ -51,6 +51,13 @@ body {
     margin: 12px 0;
 }
 
+#input-path {
+    border: 1px solid lightgray;
+    border-radius: 4px;
+    padding: 4px 12px;
+    font-size: 14px;
+}
+
 #btn-export {
     margin-right: 5%;
     border: none;
