@@ -38,7 +38,8 @@ app.layout = html.Div([
         ])
     ]),
     dcc.Store(id='table'),
-    dcc.Store(id='label')
+    dcc.Store(id='label'),
+    dcc.Store(id='center')
 ])
 
 @app.callback(
@@ -60,6 +61,7 @@ def select_features(data):
 
 @app.callback(
     Output('label', 'data'),
+    Output('center', 'data'),
     Input('table', 'data'),
     Input('features', 'value'),
     Input('k-range', 'value'),
@@ -69,7 +71,9 @@ def clustering(data, features, k_value):
     X = df[features]
     kmeans = KMeans(n_clusters=k_value, random_state=31).fit(X)
     df['cluster_id'] = kmeans.labels_
-    return df.reset_index().to_json(orient='index')
+    labeled_df = df.reset_index().to_json(orient='index')
+    center = pd.DataFrame(kmeans.cluster_centers_, columns=features).to_json(orient='index')
+    return labeled_df, center
 
 @app.callback(
     Output('message-box', 'children'),
@@ -88,17 +92,16 @@ def export_data(k_value, data, btn):
 
 @app.callback(
     Output('radar-chart', 'figure'),
-    Input('label', 'data')
+    Input('center', 'data')
 )
 def show_features(data):
     fig = go.Figure()
     time.sleep(1)
-    labeled_df = pd.read_json(StringIO(data), orient='index').set_index('OBJECTID')
-    X = labeled_df.iloc[:, 1:-1]
-    for i in labeled_df['cluster_id'].unique():
+    center = pd.read_json(StringIO(data), orient='index')
+    for i in center.index:
         fig.add_trace(go.Scatterpolar(
-            r=labeled_df.groupby('cluster_id').median().iloc[i, 1:],
-            theta=X.columns,
+            r=center.iloc[i],
+            theta=center.columns,
             fill='toself',
             name=str(i)
         ))
@@ -120,6 +123,7 @@ def draw_road(data):
     labeled_df = pd.read_json(StringIO(data), orient='index')
     road_gdf = gpd.read_file("./data/roads.geojson").to_crs(4326)
     road_gdf = road_gdf.merge(labeled_df, on='OBJECTID').set_index('OBJECTID')
+    road_gdf = road_gdf.sort_values(by='cluster_id')
     road_gdf = road_gdf.astype({'cluster_id': 'category'})
     fig = px.choropleth_mapbox(
         road_gdf,
